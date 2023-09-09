@@ -1,0 +1,2 @@
+# CompViz
+Computer Visualization Coursework
