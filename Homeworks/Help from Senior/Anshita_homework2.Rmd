@@ -1,0 +1,401 @@
+---
+title: "Anshita_homework2"
+author: "Anshita Aishwarya"
+date: "2/22/2022"
+output: html_document
+---
+
+# Load libraries
+
+```{r}
+
+# Importing the required libraries
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(scales)
+library(reshape)
+library(tidyverse)
+
+```
+
+# Load datasets
+
+```{r}
+
+# Importing all the datasets
+df_overweight <- read.csv("DataOverweight.csv")
+df_underweight <- read.csv("DataUnderweight.csv")
+df_stunted <- read.csv("DataStunted.csv")
+df_wasted <- read.csv("DataWasted.csv")
+df_country_param <- read_excel("Data Country Parameters.xls", 
+                               sheet = "Country")
+
+```
+
+# Problem 1 (a) ----------------------------------------------------------------
+# Join all 4 forms of malnutrition tables using joins on country and year
+
+```{r}
+
+# Merging all the data using inner join
+data_merged <- df_overweight %>%
+  full_join(df_underweight, by = c("Country", "Year")) %>%
+  full_join(df_stunted, by = c("Country", "Year")) %>%
+  full_join(df_wasted, by = c("Country", "Year"))
+
+View(data_merged)
+
+```
+
+# Problem 1 (b) ----------------------------------------------------------------
+# For each country, take the mean value for all the forms of malnutrition
+
+```{r}
+
+# Calculating mean values for Overweight
+mean_overweight <- data_merged %>%
+  drop_na() %>%
+  group_by(Country) %>%
+  summarise(AgerageOverWeightProportion =
+              mean(Children.aged..5.years.overweight..br.....weight.for.height...2.SD.,
+                   na.rm = TRUE))
+
+# Calculating mean values for Stunted
+mean_stunted <- data_merged %>%
+  drop_na() %>%
+  group_by(Country) %>%
+  summarise(AgerageStuntedProportion =
+              mean(Children.aged..5.years.stunted..br.....height.for.age...2.SD.,
+                   na.rm = TRUE))
+
+# Calculating mean values for Underweight
+mean_underweight <- data_merged %>%
+  drop_na() %>%
+  group_by(Country) %>%
+  summarise(AgerageUnderWeightProportion =
+              mean(Children.aged..5.years.underweight..br.....weight.for.age...2.SD.....,
+                   na.rm = TRUE))
+
+# Calculating mean values for Wasted
+mean_wasted <- data_merged %>%
+  drop_na() %>%
+  group_by(Country) %>%
+  summarise(AgerageWastedProportion =
+              mean(Children.aged..5.years.wasted..br.....weight.for.height...2.SD.,
+                   na.rm = TRUE))
+
+View(mean_overweight)
+View(mean_stunted)
+View(mean_underweight)
+View(mean_wasted)
+
+```
+
+# Problem 1 (c) ----------------------------------------------------------------
+# Import the Data country parameters dataset and using joins, add WHO Region and Income group
+
+```{r}
+
+# Bind the mean columns into one dataframe
+data_malnutrition <- cbind(mean_overweight,
+                           AgerageStuntedProportion = mean_stunted$AgerageStuntedProportion,
+                           AgerageUnderWeightProportion = mean_underweight$AgerageUnderWeightProportion,
+                           AgerageWastedProportion = mean_wasted$AgerageWastedProportion)
+
+# Selecting the required columns from country parameters table to join
+df_selected_columns <- df_country_param %>%
+  select(DisplayValue, WHO_REGION, `World Bank income group`)
+
+# Setting this value manually to handle the unidentified symbol � that was loaded in the dataframe
+df_selected_columns[37,1] <- "Côte d'Ivoire"
+
+# Left join with the selected columns of the country parameters
+data_malnutrition <- left_join(data_malnutrition, df_selected_columns,
+                               by = c("Country" = "DisplayValue"))
+
+View(data_malnutrition)
+
+```
+
+# Problem 2 --------------------------------------------------------------------
+# Using the datasets provided, plot grouped bar graphs
+
+```{r}
+
+# Grouping the dataset and calculate percent values for Overweight to plot bar graph
+plot_df_overweight <- data_malnutrition %>%
+  group_by(WHO_REGION, `World Bank income group`) %>%
+  summarise(percent = sum(AgerageOverWeightProportion))
+
+plot_df_overweight$percent <- as.integer(plot_df_overweight$percent/
+                                         sum(plot_df_overweight$percent) * 100)
+
+# Bar plot for Overweight
+plot_overweight <- ggplot(data = plot_df_overweight,
+                          aes(x = reorder(WHO_REGION, percent),
+                              y = percent,
+                              fill = `World Bank income group`)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  coord_flip() +
+  ggtitle("Percentage of overweight children aged 0-5 years") +
+  xlab("WHO Regions") +
+  ylab("Percentage (%)") +
+  scale_fill_brewer(palette = "Blues") +
+  labs(fill = "Income levels of country") +
+  geom_text(aes(label = percent),
+            position = position_dodge(width = 0.8),
+            vjust = 0.5,
+            hjust = -0.3,
+            size = 1.5) +
+  theme(plot.title = element_text(size = 7, face = "bold"),
+        axis.title = element_text(size = 5),
+        axis.text = element_text(size = 4),
+        legend.title = element_text(size = 5, face = "bold"),
+        legend.text = element_text(size = 4),
+        legend.key.size = unit(0.25, "cm"),
+        legend.box.spacing = unit(0.1, "cm"))
+
+# Grouping the dataset and calculate percent values for Underweight to plot bar graph
+plot_df_underweight <- data_malnutrition %>%
+  group_by(WHO_REGION, `World Bank income group`) %>%
+  summarise(percent = sum(AgerageUnderWeightProportion))
+
+plot_df_underweight$percent <- as.integer(plot_df_underweight$percent/
+                                         sum(plot_df_underweight$percent) * 100)
+
+# Bar plot for Underweight
+plot_underweight <- ggplot(data = plot_df_underweight,
+                          aes(x = reorder(WHO_REGION, percent),
+                              y = percent,
+                              fill = `World Bank income group`)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  coord_flip() +
+  ggtitle("Percentage of underweight children aged 0-5 years") +
+  xlab("WHO Regions") +
+  ylab("Percentage (%)") +
+  scale_fill_brewer(palette = "Blues") +
+  labs(fill = "Income levels of country") +
+  geom_text(aes(label = percent),
+            position = position_dodge(width = 0.8),
+            vjust = 0.5,
+            hjust = -0.3,
+            size = 1.5) +
+  theme(plot.title = element_text(size = 7, face = "bold"),
+        axis.title = element_text(size = 5),
+        axis.text = element_text(size = 4),
+        legend.title = element_text(size = 5, face = "bold"),
+        legend.text = element_text(size = 4),
+        legend.key.size = unit(0.25, "cm"),
+        legend.box.spacing = unit(0.1, "cm"))
+
+# Grouping the dataset and calculate percent values for Stunted to plot bar graph
+plot_df_stunted <- data_malnutrition %>%
+  group_by(WHO_REGION, `World Bank income group`) %>%
+  summarise(percent = sum(AgerageStuntedProportion))
+
+plot_df_stunted$percent <- as.integer(plot_df_stunted$percent/
+                                         sum(plot_df_stunted$percent) * 100)
+
+# Bar plot for Stunted 
+plot_stunted <- ggplot(data = plot_df_stunted,
+                          aes(x = reorder(WHO_REGION, percent),
+                              y = percent,
+                              fill = `World Bank income group`)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  coord_flip() +
+  ggtitle("Percentage of stunted children aged 0-5 years") +
+  xlab("WHO Regions") +
+  ylab("Percentage (%)") +
+  scale_fill_brewer(palette = "Blues") +
+  labs(fill = "Income levels of country") +
+  geom_text(aes(label = percent),
+            position = position_dodge(width = 0.8),
+            vjust = 0.5,
+            hjust = -0.3,
+            size = 1.5) +
+  theme(plot.title = element_text(size = 7, face = "bold"),
+        axis.title = element_text(size = 5),
+        axis.text = element_text(size = 4),
+        legend.title = element_text(size = 5, face = "bold"),
+        legend.text = element_text(size = 4),
+        legend.key.size = unit(0.25, "cm"),
+        legend.box.spacing = unit(0.1, "cm"))
+
+# Grouping the dataset and calculate percent values for Wasted to plot bar graph
+plot_df_wasted <- data_malnutrition %>%
+  group_by(WHO_REGION, `World Bank income group`) %>%
+  summarise(percent = sum(AgerageWastedProportion))
+
+plot_df_wasted$percent <- as.integer(plot_df_wasted$percent/
+                                         sum(plot_df_wasted$percent) * 100)
+
+# Bar plot for Wasted
+plot_wasted <- ggplot(data = plot_df_wasted,
+                          aes(x = reorder(WHO_REGION, percent),
+                              y = percent,
+                              fill = `World Bank income group`)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  coord_flip() +
+  ggtitle("Percentage of wasted children aged 0-5 years") +
+  xlab("WHO Regions") +
+  ylab("Percentage (%)") +
+  scale_fill_brewer(palette = "Blues") +
+  labs(fill = "Income levels of country") +
+  geom_text(aes(label = percent),
+            position = position_dodge(width = 0.8),
+            vjust = 0.5,
+            hjust = -0.3,
+            size = 1.5) +
+  theme(plot.title = element_text(size = 7, face = "bold"),
+        axis.title = element_text(size = 5),
+        axis.text = element_text(size = 4),
+        legend.title = element_text(size = 5, face = "bold"),
+        legend.text = element_text(size = 4),
+        legend.key.size = unit(0.25, "cm"),
+        legend.box.spacing = unit(0.1, "cm"))
+
+# Arranging all the 4 plots in a grid
+grid.arrange(plot_overweight,
+             plot_stunted,
+             plot_underweight,
+             plot_wasted,
+             nrow = 2, ncol = 2)
+
+```
+
+# Problem 3 --------------------------------------------------------------------
+# Using the datasets, fill in the correlation values between different forms of malnutrition
+
+# Positive correlation : It means that the 2 variables move in the same direction, i.e., if 1 variable increses, the other variable increases and if 1 variable decreases, the other also decreases.
+
+# Negative correlation : It means that the 2 variables move in the opposite direction, i.e., if 1 variable increases, the other variable decreases, and vice-versa.
+
+# Zero correlation : It means that there is no linear relationship between the 2 variables.
+
+# Based on the correlation matrix that we have obtained, we can see that Stunted and Underweight have the highest positive correlation (0.85) between them i.e., an increase in Stunted will lead to an increase in Stunted and vice-versa.
+# Also, Overweight and Wasted have the least negative correlation between them, i.e., their relationship is not very dependent on one another.
+
+```{r}
+
+# Creating a subset of the dataframe containing only numerical columns
+# Here I have used the original dataframe obtained in question 1.(a) obtained by joining all 4 datasets
+df_num <- data_merged[c(3, 5, 4, 6)]
+colnames(df_num) <- c("Overweight", "Stunted", "Underweight", "Wasted")
+
+# Calculating correlation values using cor function
+df_corr <- cor(df_num, use = "pairwise.complete.obs")
+
+View(df_corr)
+
+```
+
+# Problem 4 --------------------------------------------------------------------
+# Using the datasets, plot the box and violin plots.
+
+# Part (a) - Box plots
+# Inferences from the box plots:
+
+# The distribution for Stunted has the highest Interquartile range (difference between 1st and 3rd quartiles), i.e., most of its datapoints are ranging between 18-40 million, whereas the distribution for Overweight has the least Interquartile range ranging between 3-9 million. From this we can interpret that a large number of countries fall in the stunted growth among children population.
+
+# The distributions of Overweigt, Underweight and Wasted is highly skewed, with majority of the countries lying in the range of 3-22 million. However, all of these distributions have a lot of outliers. For example, there are a few countries that have extremely high pouplation of underweight children (going upto 65 million).
+
+```{r}
+
+# Stacking data from wide format to a single column using melt function
+# Here I have used the original dataframe obtained in question 1.(a) by joining all 4 datasets
+box_violin_df <- melt(df_num)
+
+# Box plot
+ggplot(box_violin_df, aes(factor(variable), y = value)) +
+  geom_boxplot() +
+  facet_wrap(~variable, scale = "free") +
+  ggtitle("Box plots for values of different forms of child malnutrition") +
+  xlab("Category") +
+  ylab("Value") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+# Part (b) - Violin plots
+# Inferences from the violin plots:
+
+# Similar to the box plot, the violin plot also shows that the distribution for stunted has a larger Interquartile range and has a very dense distribution near the median. Most of the countries have nearly 30 million stunted growth among child population.
+
+# On the other hand, the density distribution for Overweight, Underweight and Waster is more tapered towards the top. This means that majority of the data lies towards the lower end (near the 1st quartile). There are lesser points near the median of their respective distributions. For example, with respect to overweight children, a majority of countries lie near the 5 million population.
+
+```{r}
+
+# Violin plot
+# Here I have used the original dataframe obtained in question 1.(a) by joining all 4 datasets
+ggplot(box_violin_df, aes(x = factor(variable), y = value)) + 
+  geom_violin() +
+  facet_wrap(~variable, scale = "free") +
+  ggtitle("Violin plots for values of different forms of child malnutrition") +
+  xlab("Category") +
+  ylab("Value") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+# Problem 5 --------------------------------------------------------------------
+# Compute the number of farmers markets by state and arrange them in descending order of number of farmers market.
+
+```{r}
+
+# Loading the farmers market data
+fm <- read.csv("fm.csv", strip.white = TRUE)
+
+# Farmers markets by state
+markets_by_state <- fm %>%
+  group_by(State) %>%
+  summarise(number_of_farmers_markets = n()) %>%
+  arrange(desc(number_of_farmers_markets))
+
+View(markets_by_state)
+
+```
+
+# Problem 6 --------------------------------------------------------------------
+# Compute the number of farmers market by cities in Massachusetts and display top five cities
+
+```{r}
+
+# Farmers markets by cities in Massachusetts
+markets_by_cities <- fm %>%
+  filter(State == "Massachusetts") %>%
+  group_by(city) %>%
+  summarise(number_of_farmers_markets = n()) %>%
+  arrange(desc(number_of_farmers_markets)) %>%
+  slice(1:5)
+
+View(markets_by_cities)
+
+```
+
+# Problem 7 --------------------------------------------------------------------
+# Number of farmers market by state offering the payment services “Credit”, “WIC”, “WICcash” and “SNAP”
+
+```{r}
+
+# Selecting the required columns for “Credit”, “WIC”, “WICcash” and “SNAP”
+markets_by_payment <- fm %>%
+  select(State, Credit, WIC, WICcash, SNAP)
+
+# Using pivot longer function to convert the table to longer format
+markets_by_payment <- markets_by_payment %>%
+  pivot_longer(-State, 
+               names_to = "Payment System",
+               values_to = "Farmers Market")
+
+# Calculating the number of states offering each payment service
+markets_by_payment <- markets_by_payment %>%
+  filter(`Farmers Market` == "Y") %>%
+  group_by(State, `Payment System`) %>%
+  summarise("#Farmers Market" = n())
+
+View(markets_by_payment)
+
+```
+

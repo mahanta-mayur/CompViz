@@ -1,0 +1,666 @@
+---
+title: "Part 2"
+output: html_document
+---
+
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+
+
+## Stacked Area Charts
+### Uses: comparison,part to whole
+
+# For example imagine we want to compare the amount of each cut for each price (its easier to do this using area) 
+
+```{r}
+library(scales)
+ggplot(diamonds, aes(x = price, fill=cut))+
+  geom_area(stat="bin")+
+  ggtitle("Stacked Area Graph for Comparison + Part to Whole")
+```
+# We could use this as proportion 
+
+```{r}
+
+# To verify lets get the proportion of each cut
+data <- diamonds  %>%
+  group_by(cut) %>%
+  dplyr::summarise(n = sum(price)) %>%
+  dplyr::mutate(percentage = n / sum(n))
+
+
+ggplot(diamonds, aes(x = price, fill=cut))+
+  geom_area(stat="bin",position="fill")+
+  ggtitle("Stacked Area Graph for Comparison + Part to Whole")
+
+
+ggplot(diamonds, aes(x = price, fill=cut))+
+  geom_area(stat="bin",position="fill", alpha=0.6 , size=1, colour="black")+
+  ggtitle("Stacked Area Graph for Comparison + Part to Whole")
+```
+
+
+#scale y axis to percentage
+
+```{r}
+library(scales)
+ggplot(diamonds, aes(x = price, fill=cut))+
+  geom_area(stat="bin",position="fill")+
+  scale_y_continuous(labels = percent_format())+
+  ggtitle("Stacked Area Graph for Comparison + Part to Whole")
+```
+
+
+
+## Tree Maps
+### Uses: comparison,part to whole
+
+
+```{r}
+library(treemapify)
+library(dplyr)
+temp<-dplyr::summarise(group_by(diamonds,cut),total_value=sum(price), total_carat=sum(carat))
+
+
+ggplot(temp, aes(area=total_value,label=cut,fill=cut))+
+  geom_treemap()+ 
+  geom_treemap_text(fontface = "italic", colour = "white", place = "centre",grow = FALSE)+
+  ggtitle("Tree Maps for Comparison + Part to Whole")
+
+
+# increasing the square font size based on the values
+
+ggplot(temp, aes(area=total_value,label=cut,fill=cut))+
+  geom_treemap()+ 
+  geom_treemap_text(fontface = "italic", colour = "white", place = "centre",grow = TRUE)+
+  ggtitle("Tree Maps for Comparison + Part to Whole")
+```
+
+#Alluvial Chart
+# So parallel sets are useful for comparison with hierarchy. On this example 
+# passengers on the titanic are stratified by demographic and survival 
+ 
+
+# you remember we discussed in the first class that we have 4 variables which 3 of them are axis and a frequency value as y
+
+```{r}
+library(ggalluvial)
+titanic_wide <- data.frame(Titanic)
+ggplot(data = titanic_wide,
+       aes(axis1 = Sex, axis2 = Class, axis3 = Age,
+           y = Freq)) +
+  scale_x_discrete(limits = c("Sex", "Class", "Age"), expand = c(.1, .05)) +
+  xlab("Demographic") +
+  geom_alluvium(aes(fill = Survived)) +
+  geom_text(stat = "stratum", label.strata = TRUE)
+
+
+
+
+# what if we want to show the boxed per axis/variables like a box per each class category
+ggplot(data = titanic_wide,
+       aes(axis1 = Sex, axis2 = Class, axis3 = Age,
+           y = Freq)) +
+  scale_x_discrete(limits = c("Sex", "Class", "Age"), expand = c(.1, .05)) +
+  xlab("Demographic") +
+  geom_alluvium(aes(fill = Survived)) +
+  geom_text(stat = "stratum", label.strata = TRUE)+
+  geom_stratum() 
+```
+
+
+## Pie Charts
+### Uses: Part to whole, comparison
+
+```{r}
+# Simple Pie Chart
+slices <- c(10, 12,4, 16, 8)
+lbls <- c("US", "UK", "Australia", "Germany", "France")
+pie(slices, labels = lbls, main="Pie Chart of Countries")
+```
+
+#Add percentage to each slice
+
+```{r}
+slices <- c(10, 12, 4, 16, 8) 
+lbls <- c("US", "UK", "Australia", "Germany", "France")
+pct <- round(slices/sum(slices)*100)
+lbls <- paste(lbls, pct) # add percents to labels 
+lbls <- paste(lbls,"%",sep="") # ad % to labels 
+pie(slices,labels = lbls, main="Pie Chart of Countries")
+```
+#Poolar cordinates - stacked bar chart in polar coordinates.
+
+
+
+```{r}
+
+# The polar coordinate system is most commonly used for pie charts 
+ggplot(data = diamonds, mapping = aes(x = cut, fill = cut)) + 
+    geom_bar(width = 1) + 
+  coord_polar(theta = "x")
+```
+# So far we have seen some of the common plots which you may use in a daily manner at work/research
+# the idead behind visualisation is not only how to plot or what plot to use
+# Sometimes you could use a simple plot but represent it in a neat way (using better coloring, fonts, size, ...)
+
+## How to format main, axis and legend titles
+
+
+```{r}
+# Main and axis title
+library(ggplot2)
+ToothGrowth$dose <- as.factor(ToothGrowth$dose)
+
+p<-ggplot(ToothGrowth, aes(x=dose, y=len)) + 
+  geom_boxplot()+ ggtitle("Plot of length by dose") + 
+  xlab("Dose (mg)") + ylab("Teeth length")
+
+p
+```
+
+
+```{r}
+# Change text of legend
+p<-ggplot(ToothGrowth, aes(x=dose, y=len, fill=dose)) + 
+  geom_boxplot()+ ggtitle("Plot of length by dose") + 
+  xlab("Dose (mg)") + 
+  ylab("Teeth length") 
+
+p+labs(fill = "Dose (mg)")
+
+```
+
+```{r}
+p + theme(
+  plot.title = element_text(color="red", size=14, face="bold.italic"),
+  axis.title.x = element_text(color="blue", size=14, face="bold"),
+  axis.title.y = element_text(color="#993333", size=14, face="bold")
+)
+```
+
+```{r}
+# Change text properties for entire plot
+p+theme(text=element_text(size=16))
+```
+
+
+
+# Change legend position
+
+```{r}
+p + theme(legend.position="top")
+```
+
+```{r}
+p + theme(legend.position="bottom")
+```
+
+```{r}
+p + theme(legend.position = c(0.8, 0.2))
+```
+
+# Chnage legend title
+
+```{r}
+p + 
+  theme(legend.title = element_text(colour="blue", size=16, face="bold"))+
+  labs(fill = "Dose (mg)")
+```
+
+# Change legend text
+```{r}
+p + 
+  theme(legend.text = element_text(colour="blue", size=16, face="bold"))+
+  labs(fill = "Dose (mg)")
+```
+
+```{r}
+# Change background color of legend
+p + theme(legend.background = element_rect(fill="lightblue", size=0.5,linetype="solid"))
+```
+
+# Remove only the legend title using element_bank()
+```{r}
+p + theme(legend.title = element_blank())
+```
+
+# Remove the plot legend
+```{r}
+p + theme(legend.position='none')
+```
+
+```{r}
+p <- ggplot(data = mtcars, 
+    aes(x=mpg, y=wt, color=cyl, size=qsec, shape=factor(gear)))+
+    geom_point()
+
+p
+```
+
+# You can Select which dimension to show using legend
+
+```{r}
+p+guides(color = FALSE, size = FALSE)
+```
+
+## Changing Colors using name and numbers
+
+
+```{r}
+ToothGrowth$dose <- as.factor(ToothGrowth$dose)
+mtcars$cyl <- as.factor(mtcars$cyl)
+```
+
+
+
+
+```{r}
+# box plot
+ggplot(ToothGrowth, aes(x=dose, y=len)) +
+  geom_boxplot( color="darkred")
+
+# Use color names from R
+```
+
+```{r}
+# box plot
+ggplot(ToothGrowth, aes(x=dose, y=len)) +
+  geom_boxplot(fill="burlywood", color="darkred")
+```
+# Use Hexcolor scheme
+
+
+```{r}
+# box plot
+ggplot(ToothGrowth, aes(x=dose, y=len)) +
+  geom_boxplot(fill="#bada55", color="#1d1916")
+
+```
+
+```{r}
+# scatter plot
+ggplot(mtcars, aes(x=wt, y=mpg)) + 
+  geom_point(color='#3b5998')
+
+```
+
+```{r}
+# Box plot
+bp<-ggplot(ToothGrowth, aes(x=dose, y=len, fill=dose)) +
+  geom_boxplot()
+bp
+```
+
+# Fill group colors manually
+
+```{r}
+bp+ scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9"))
+```
+
+# Fill group colors manually
+
+
+```{r}
+sp<-ggplot(mtcars, aes(x=wt, y=mpg, color=factor(cyl)))+geom_point() 
+
+sp + scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))
+
+```
+# Using palette colors from brewer package
+
+
+```{r}
+
+library(RColorBrewer)
+# Box plot
+bp + scale_fill_brewer(palette="Dark2")
+```
+
+```{r}
+# Using grey scale
+# Box plot
+bp + scale_fill_grey() 
+```
+
+```{r}
+# Scatter plot
+sp + scale_color_grey() 
+```
+
+```{r}
+# Using continuous colors
+sp2<-ggplot(mtcars, aes(x=wt, y=mpg, color=qsec)) + geom_point()
+sp2
+```
+
+```{r}
+# Sequential color scheme
+sp2+scale_color_gradient(low="blue", high="red")
+```
+
+```{r}
+# Diverging color scheme
+mid<-mean(mtcars$qsec)
+sp2+scale_color_gradient2(midpoint=mid, low="blue", mid="white",
+                     high="red", space ="Lab" )
+```
+
+# Gradient between n colors
+
+```{r}
+sp3<-ggplot(mtcars, aes(x=wt, y=mpg, color=mpg)) + geom_point()
+sp3+scale_color_gradientn(colours = rainbow(2))
+```
+
+
+## Changing background theme
+
+```{r}
+ToothGrowth$dose <- as.factor(ToothGrowth$dose)
+p <- ggplot(ToothGrowth, aes(x=dose, y=len)) + geom_boxplot()
+p
+```
+```{r}
+p + theme_gray()
+```
+
+```{r}
+p + theme_bw()
+```
+
+```{r}
+p + theme_light()
+```
+
+```{r}
+p + theme_minimal()
+```
+
+```{r}
+
+# Lines will disappear 
+p + theme_classic()
+```
+
+```{r}
+# You can remove the theme totally 
+p + theme_void()
+```
+
+```{r}
+p + theme_dark()
+```
+
+```{r}
+ggplot(ToothGrowth, aes(x=dose, y=len, fill=supp)) +
+  geom_boxplot()+
+  scale_fill_manual(values=c("#fe5970", "#c2fe59"))+
+  theme_dark()
+```
+
+# Custom background colors
+# Change the colors of plot panel background to lightblue
+# and the color of grid lines to white
+
+
+```{r}
+
+p + theme(
+  panel.background = element_rect(fill = "lightblue",
+                                colour = "lightblue",
+                                size = 0.5, linetype = "solid"),
+  panel.border = element_rect(colour = "black", fill=NA, size=5),
+  
+  panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+                                colour = "white"), 
+  panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                colour = "red")
+  
+  )
+```
+
+
+# Remove panel borders and grid lines
+
+```{r}
+p + theme(panel.border = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank())
+```
+
+# Hide panel borders and grid lines
+
+
+```{r}
+# But change axis line
+p + theme(panel.border = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(size = 0.5, linetype = "solid",
+                                   colour = "black"))
+```
+
+## Axis Ticks
+
+```{r}
+# scatter plot
+p <- ggplot(ToothGrowth, aes(x=dose, y=len)) + geom_boxplot()
+p
+```
+# Change the appearance and the orientation angle of axis tick labels
+
+
+```{r}
+
+p + theme(axis.text.x = element_text(face="bold", color="#993333", 
+                           size=14, angle=45),
+          axis.text.y = element_text(face="bold", color="#993333", 
+                           size=14, angle=45))
+```
+# Hide x an y axis tick mark labels
+
+
+```{r}
+p + theme(
+  axis.text.x = element_blank(),
+  axis.text.y = element_blank())
+```
+
+# Remove axis ticks and tick mark labels
+
+```{r}
+p + theme(
+  axis.text.x = element_blank(),
+  axis.text.y = element_blank(),
+  axis.ticks = element_blank())
+```
+
+# Change the line type and color of axis lines
+
+```{r}
+p + theme( axis.line = element_line(colour = "darkblue", 
+                      size = 1, linetype = "solid"))
+```
+# Change the order of items Change the x axis name
+
+```{r}
+
+p + scale_x_discrete(name ="Dose (mg)", 
+                    limits=c("2","1","0.5"))
+```
+
+```{r}
+# Change ticks name
+p + scale_x_discrete(breaks=c("0.5","1","2"),
+        labels=c("Dose 0.5", "Dose 1", "Dose 2"))
+```
+
+# Choose which items to display
+
+```{r}
+p + scale_x_discrete(limits=c("0.5", "2"))
+```
+
+# Changing axis with continuous variables
+
+```{r}
+# lets make a refrence plot
+sp<-ggplot(cars, aes(x = speed, y = dist)) +
+  geom_point()
+
+sp
+```
+
+# Change x and y axis labels, and limits
+
+```{r}
+sp + scale_x_continuous(name="Speed of cars", limits=c(0, 30)) +
+  scale_y_continuous(name="Stopping distance", limits=c(0, 150))
+```
+
+# Set tick marks on y axis a tick mark is shown on every 5
+
+
+```{r}
+p + scale_y_continuous(breaks=seq(0,40,5))
+```
+
+
+
+# Tick marks can be spaced randomly
+
+```{r}
+p + scale_y_continuous(breaks=c(5,7.5, 20, 25))
+```
+
+# Remove tick mark labels and gridlines
+
+```{r}
+p + scale_y_continuous(breaks=NULL)
+```
+
+# Multigrid - why its good?
+
+```{r}
+p <- ggplot(mpg, aes(displ, cty)) + geom_point()
+
+# Use vars() to supply variables from the dataset:
+p + facet_grid(rows = vars(drv))
+```
+
+```{r}
+p <- ggplot(mpg, aes(displ, cty)) + geom_point()
+
+# Use vars() to supply variables from the dataset:
+p + facet_grid(cols  = vars(drv))
+```
+
+
+```{r}
+p + facet_grid(vars(drv), vars(cyl))
+```
+
+```{r}
+p + facet_grid(. ~ cyl)
+```
+
+```{r}
+p + facet_grid(cyl~.)
+```
+
+```{r}
+p + facet_grid(drv ~ cyl)
+```
+
+# Separataing for each factor (cyl)
+
+```{r}
+mt <- ggplot(mtcars, aes(mpg, wt, colour = factor(cyl))) +
+  geom_point()
+
+mt + facet_grid(. ~ cyl, scales = "free")
+```
+
+
+# Separataing for multiple conditions (we will get a plot per combination)
+
+
+```{r}
+mg <- ggplot(mtcars, aes(x = mpg, y = wt)) + geom_point()
+mg + facet_grid(carb + am ~ gear)
+```
+
+
+
+
+# Adding the label to eahc box on both col and rows (here cyl: and drv:) are labels
+
+```{r}
+p + facet_grid(drv ~ cyl, labeller = label_both)
+```
+
+```{r}
+mg + facet_grid(
+  vs + am ~ gear,
+  labeller = labeller(.rows = label_both, .cols = label_value)
+)
+
+
+```
+
+
+# edit the headers 
+
+```{r}
+p + facet_grid(drv ~ cyl)+
+  theme(strip.background = element_rect(colour="black", fill="white", size=1.5, linetype="solid"))
+```
+
+```{r}
+ggplot(mpg, aes(displ, cty)) +
+  geom_point(color="#ffd23d") + 
+  facet_grid(drv ~ cyl)+
+  theme_dark(base_size = 18)
+```
+
+
+```{r}
+ggplot(mpg, aes(displ, cty)) +
+  geom_point(color="#2f6276") + 
+  facet_grid(drv ~ cyl)+
+  theme_bw(base_size = 18)
+```
+
+```{r}
+ggplot(mpg, aes(displ, cty)) + 
+  geom_point(color="#008f95") + 
+  facet_grid(drv ~ cyl)+
+  theme_minimal(base_size = 18)
+```
+
+```{r}
+ggplot(mpg, aes(displ, cty)) +
+  geom_point(color="#2f6276") + 
+  facet_grid(drv ~ cyl)+
+  theme_classic()
+```
+
+# save a plot
+
+```{r}
+ggplot(mpg, aes(displ, cty)) + 
+  geom_point(color="#2f6276") + 
+  facet_grid(drv ~ cyl)+
+  theme_bw(base_size = 18)
+ggsave("output.png", device="png")
+```
+
+
+
+
+
+
+
+

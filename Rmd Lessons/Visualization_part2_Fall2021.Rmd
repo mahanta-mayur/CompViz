@@ -1,0 +1,863 @@
+---
+title: "Visualization_part1"
+output: html_document
+---
+```{r}
+#depending on the timing we might work with the plotly library as well
+
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+# Use ggplot function to plot
+# Using only ggplot function will create a blank canvas
+ 
+head(mpg) #Table
+
+head(mtcars)# data frame
+
+ggplot()
+```
+
+```{r}
+# Provide aesthetics to blank canvas - it does not show the data points unless its provided
+# 
+# Aesthetic mappings describe how variables in the data are mapped to visual properties (aesthetics) of geoms
+
+ggplot(mpg, aes(x=cty,y=hwy))
+```
+
+```{r}
+# In the first class we talked about the marks and attributes
+
+
+# Generate canvas + add axis + plot data
+# Geom provides layer to the graph - first lets check the geom by searching for it
+
+
+ggplot(mpg, aes(x=cty,y=hwy))+geom_point()
+
+
+ggplot(mpg, aes(x=cty,y=hwy))+geom_point(alpha = 1/10)
+
+
+ggplot(mpg, aes(x=cty,y=hwy))+geom_point(shape = "+")
+
+
+ggplot(mpg, aes(x=cty,y=hwy))+geom_point(shape = "+", colour = "red", size = 3)
+
+ggplot(mpg, aes(x=cty,y=hwy)) +
+  geom_point(shape = 21, colour = "black", fill = "white", size = 5, stroke = 5) #stroke is for the edges
+
+```
+
+```{r}
+# Map additional dimension to aesthetics. In this case color
+ggplot(mpg, aes(x=cty,y=hwy, color=class))+geom_point()
+
+```
+
+```{r}
+# Map dimension as shape
+ggplot(mpg, aes(x=cty,y=hwy, shape=drv))+geom_point()
+```
+
+```{r}
+# Map dimension as size
+ggplot(mpg, aes(x=cty,y=hwy, size=displ))+geom_point()
+```
+
+```{r}
+# Mapping multi dimensions 
+# 
+# imagine we want to show the relation between city miles per gallon and highway miles per gallon
+# for each the type of drive train (drv), now we want to see engine displacement, in litres as well
+# we can add the fourth dimension
+# 
+# What can we see? we can show three infromation using one plot - for example for each
+# green (front wheel) we can see as the milage per cty and highway increases the engine displacement decreases
+ggplot(mpg, aes(x=cty,y=hwy, size=displ, color=drv))+geom_point()
+```
+
+```{r}
+# Limitations of mapping according to type of variable
+ggplot(mpg, aes(x=cty,y=hwy))+geom_point()
+```
+
+
+# Bar Plot
+```{r}
+df <- data.frame(dose=c("D0.5", "D1", "D2", "D2"),
+                len=c(4.2, 10, 29.5, 15))
+
+
+ggplot(data=df, aes(x=dose)) +
+  geom_bar() #by default is stat = count
+
+# First thing to see is that we are not providing the y-values
+
+ggplot(data=df, aes(x=dose, y=len)) +
+  geom_bar(stat="identity")
+
+# If you explicitly say stat = "identity" in geom_bar(), you're telling 
+# ggplot2 to skip the aggregation and that you'll provide the y values
+```
+
+```{r}
+ggplot(data=df, aes(x=dose, y=len)) +
+  geom_bar(stat="identity")+coord_flip()
+```
+
+```{r}
+library(gridExtra)
+p1<- ggplot(data=df, aes(x=dose, y=len)) +
+  geom_bar(stat="identity")
+p2<- ggplot(data=df, aes(x=dose, y=len)) +
+  geom_bar(stat="identity")+coord_flip()
+grid.arrange(p1,p2,ncol=2)
+```
+
+#for numerical variables (cylenders are numerical)
+
+```{r }
+
+ggplot(mtcars, aes(x=(cyl)))+
+  geom_bar(stat="bin")
+
+# What if we use a variable with factor levels ? 
+
+# ggplot(mtcars, aes(x=(factor(cyl))))+
+#   geom_bar(stat="bin")
+
+```
+
+# Stacked bar chart
+```{r}
+df2 <- data.frame(supp=rep(c("VC", "OJ"), each=3), #function rep dopes repeat the values for # of times specified
+                dose=rep(c("D0.5", "D1", "D2"),2),
+                len=c(6.8, 15, 33, 4.2, 10, 29.5))
+
+p1<- ggplot(data=df2, aes(x=dose, y=len, fill=supp)) +
+  geom_bar(stat="identity")
+p2<- p1+coord_flip()
+grid.arrange(p1,p2,ncol=2)
+```
+
+# Generating stacked bar chart as percentages
+```{r}
+
+head(mtcars)
+
+library(scales)
+# first we want to create a grouped Bar Graph for Comparison
+# then we are creating a stacked bar graph for comparison
+# which one do you think does a better work in representing the information? 
+
+p1<-ggplot(mtcars, aes(factor(cyl), mpg, fill=factor(gear) )) +
+  geom_bar(stat="identity", position="dodge") +coord_flip()+
+  ggtitle("100 % Stacked Bar Graph for Comparison")+
+  scale_y_continuous(labels = percent_format()) 
+
+
+p2<-ggplot(mtcars, aes(factor(cyl), mpg, fill=factor(gear) )) +
+  geom_bar(stat="identity", position="fill" ) +
+  ggtitle("100 % Stacked Column Graph for Comparison")+
+  scale_y_continuous(labels = percent_format())
+
+grid.arrange(p1, p2,ncol = 2)
+```
+
+
+# Grouped bar chart
+```{r}
+p1<- ggplot(data=df2, aes(x=dose, y=len, fill=supp)) +
+  geom_bar(stat="identity", position="dodge")
+p2<- p1+coord_flip()
+grid.arrange(p1,p2,ncol=2)
+```
+
+# Point to remember in bar chart
+```{r}
+# Make sure one axis is categorical
+ggplot(mtcars, aes(x = cyl)) + geom_bar()
+```
+
+# Highlighting - lets color a specific condition
+```{r}
+library(magrittr)
+midwest %>% 
+  mutate(highlight_flag = ifelse(state == 'IL', T, F)) %>%  #lets create a new feature (T/F)
+  ggplot(aes(x = state, fill = highlight_flag)) +
+    geom_bar()
+
+# Question: Can you plot this in a easier way?
+
+
+ggplot(midwest, aes(x = state, fill = state == 'IL')) +
+    geom_bar()
+```
+
+# Ordering categories 
+```{r}
+p1 <- ggplot(mtcars, aes(x = row.names(mtcars), mpg)) +
+        geom_bar(stat = "identity") +
+        coord_flip() +
+        ggtitle("Fig. A: Default rotated x-axis")
+
+# order bars
+# point here is when you are reordering the row.names it should be applied the whole dataset
+# and then passed to the plot function - you are doing this by reordering the row names as an aesthetics
+p2 <- ggplot(mtcars, aes(x = reorder(row.names(mtcars), mpg), y = mpg)) +
+        geom_bar(stat = "identity") +
+        coord_flip() +
+        ggtitle("Fig. B: Rotated ordered x-axis")
+
+grid.arrange(p1, p2, ncol = 2)
+```
+
+
+# Text annotation
+```{r}
+# It is highly recommeded to use text annotation in the bar graph to make it easier for 
+# your audience to follow or understand the graph - we can do this using geom_text() 
+
+# Outside bars
+p1<-ggplot(data=df, aes(x=dose, y=len)) +
+  geom_bar(stat="identity")+
+  geom_text(aes(label=len), vjust=-.3, size=3.5)
+
+
+# What if we decrease the vjust
+#  
+# p1<-ggplot(data=df, aes(x=dose, y=len)) +
+#   geom_bar(stat="identity")+
+#   geom_text(aes(label=len), vjust=-10.3, size=3.5)
+
+# Inside bars
+p2<-ggplot(data=df, aes(x=dose, y=len)) +
+  geom_bar(stat="identity")+
+  geom_text(aes(label=len), vjust=1.6, color="white", size=3.5)
+grid.arrange(p1,p2, ncol=2)
+```
+# Text annotation for cumulative sum in stacked bar chart
+
+```{r}
+library(plyr)
+df_sorted <- arrange(df2, dose, supp)  # orders the rows of a data frame by the values of selected columns.
+df_cumsum <- ddply(df_sorted, "dose",     #create a variable (label_ypos) for cumulative sum of (len) over variable (dose)
+                   transform, label_ypos=cumsum(len))
+
+ggplot(data=df_cumsum, aes(x=dose, y=len, fill=supp)) +
+  geom_bar(stat="identity")+
+  geom_text(aes(y=label_ypos, label=len), vjust=1.6, 
+            color="white", size=3.5)
+```
+
+# Text annotation for cumulative sum in grouped bar chart
+
+
+```{r}
+ggplot(data=df2, aes(x=dose, y=len, fill=supp)) +
+  geom_bar(stat="identity", position=position_dodge())+
+  geom_text(aes(label=len), vjust=1.6, color="white",
+            position = position_dodge(0.9), size=3.5)
+
+
+ggplot(data=df2, aes(x=dose, y=len, fill=supp)) +
+  geom_bar(stat="identity", position='dodge')+
+  geom_text(aes(label=len), vjust=1.6, color="white",
+            position = position_dodge(0.9), size=3.5)
+```
+
+# Augmenting additional visual elements
+
+```{r}
+# Adding reference line - sometimes we want to add a reference line to emphesize on a hidden knowledge/facts - we can use the refrence line for ex
+
+  ggplot(data=df, aes(x=dose, y=len)) +
+  geom_bar(stat="identity")+
+  geom_hline(yintercept=20, linetype="dashed")
+```
+
+```{r}
+  ggplot(data=df, aes(x=dose, y=len)) +
+  geom_bar(stat="identity")+
+  geom_hline(yintercept=mean(df$len), linetype="dashed")
+```
+
+```{r}
+# Adding text
+ggplot(data=df, aes(x=dose, y=len)) +
+  geom_bar(stat="identity")+
+  geom_hline(yintercept=mean(df$len), linetype="dashed")+
+ geom_text(x=2, y=16, label="Mean Value")
+```
+
+```{r}
+ggplot(data=df, aes(x=dose, y=len)) +
+  geom_bar(stat="identity")+
+  geom_hline(yintercept=mean(df$len), linetype="dashed")+
+ annotate(geom="text",x=2, y=16, label="Mean Value")
+```
+
+# Alternate syntax
+```{r}
+## you could pass the dataset in the geom layer
+
+df <- data.frame(dose=c("D0.5", "D1", "D2"),
+                len=c(4.2, 10, 29.5))
+
+ggplot() + 
+  geom_bar(data=df, aes(x=dose, y=len),stat="identity")
+```
+
+```{r}
+df <- data.frame(dose=c("D0.5", "D1", "D2"),
+                len=c(4.2, 10, 29.5))
+
+ggplot(data=df) +
+  geom_bar( aes(x=dose, y=len),stat="identity")
+```
+
+
+
+# Heat Maps
+
+```{r}
+x <- LETTERS[1:20]
+y <- paste0("var", seq(1,20))
+data <- expand.grid(X=x, Y=y)
+data$Z <- runif(400, 0, 5) # uniform distribution on the interval from min to max
+ 
+ggplot(data, aes(X, Y, fill= Z)) + 
+  geom_tile()
+```
+
+
+# Heat Maps
+
+```{r}
+library(reshape2)
+mydata <- mtcars[, c(1,3,4,5,6,7)]
+cormat <- round(cor(mydata),2)
+melted_cormat <- melt(cormat) # it change the wide to long format
+ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()
+
+```
+
+
+# Data Distribution-Box Plot
+```{r}
+# The Effect of Vitamin C on Tooth Growth in Guinea Pigs
+
+p1<-ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_boxplot()
+p2<-ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_boxplot()+coord_flip() 
+
+# The notch displays a confidence interval around the median which is normally based on the median +/- 1.58*IQR/sqrt(n). Notches are used to compare groups; if the notches of two boxes do not overlap, this is a strong evidence that the medians differ.
+
+p3<-ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_boxplot(notch=TRUE) + theme(legend.position="bottom")
+
+p4<-ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_boxplot(outlier.colour="red", outlier.shape=8,
+                outlier.size=4)
+grid.arrange(p1, p2, p3, p4,ncol = 2, heights=c(1,1))
+```
+
+
+
+```{r}
+# Dont use fill+color=same variable for box plot
+
+ggplot(ToothGrowth, aes(x=factor(dose), y=len, fill=factor(dose))) + 
+  geom_boxplot()
+
+ggplot(ToothGrowth, aes(x=factor(dose), y=len, color=factor(dose))) + 
+  geom_boxplot()
+
+ggplot(ToothGrowth, aes(x=factor(dose), y=len, color=factor(dose), fill=factor(dose))) + 
+  geom_boxplot()
+```
+
+# Box plot with mean points
+
+```{r}
+
+#The function stat_summary() can be used to add mean points to a box plot
+
+ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_boxplot()+
+  stat_summary(fun=mean, geom="point", size=2,color="red")
+
+
+# You can also choose the item to display 
+# 
+ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_boxplot()+
+  stat_summary(fun=mean, geom="point", size=2,color="red") +
+  scale_x_discrete(limits=c("0.5", "2"))
+
+
+```
+
+# Box plot with multiple groups
+
+```{r}
+# Change box plot colors by groups
+
+bp <- ggplot(ToothGrowth, aes(x=factor(dose), y=len, fill=supp))
+
+bp + geom_boxplot()
+
+
+# add  some distance between the boxplots of the same group
+bp + geom_boxplot(position=position_dodge(1))
+
+bp + geom_boxplot(position=position_dodge(1)) +
+  scale_fill_brewer(palette="Blues") + theme_classic()
+# Discrete colors
+bp + geom_boxplot(position=position_dodge(1)) + 
+  scale_fill_brewer(palette="Dark2") + theme_minimal()
+# Gradient colors
+bp + geom_boxplot(position=position_dodge(1)) + 
+  scale_fill_brewer(palette="RdBu") + theme_minimal()
+
+
+
+```
+# Data Distribution-Violin Plots
+```{r}
+ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_violin()
+```
+
+```{r}
+p1<-ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_violin()
+
+
+p2<-ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_violin()+coord_flip()
+grid.arrange(p1, p2,ncol = 2, heights=c(1,1))
+
+```
+
+#Add a boxlot within the violin plot
+
+```{r}
+p1<-ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_violin()+geom_boxplot(width=0.1)
+
+p2<-ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_violin()+coord_flip()+geom_boxplot(width=0.1)
+
+grid.arrange(p1, p2,ncol = 2, heights=c(1,1))
+
+```
+```{r}
+ggplot(ToothGrowth, aes(x=factor(dose), y=len,fill=supp)) + 
+  geom_violin()
+```
+
+# Data Distribution-Dot Plot
+```{r}
+
+# binaxis: The axis to bin along, "x" (default) or "y"
+# 
+# stackdir which direction to stack the dots. "up" (default), "down", "center",
+# "centerwhole" (centered, but with dots aligned)
+
+ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=1)
+
+# 0.2 : degree of jitter in x direction
+
+ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=1) + 
+  geom_jitter(shape=2, position=position_jitter(0.2))
+```
+
+
+# Change dots shape and fonts
+
+```{r}
+ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_dotplot(binaxis='y', stackdir='center',
+               stackratio=1.5, dotsize=1.2)
+```
+# Direction to stack the dots
+
+```{r}
+ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_dotplot(binaxis='y', stackratio=1.5, dotsize=1.2)
+
+
+ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_dotplot(binaxis='y', stackdir='down', dotsize=1)
+
+
+
+```
+# Adding statistcal  summary to the point (Mean, Median)
+
+```{r}
+p1<-ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_dotplot(binaxis='y', stackdir='center')+
+  stat_summary(fun = mean, geom="point", shape=18,size=3, color="red")
+
+p2<-ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_dotplot(binaxis='y', stackdir='center',
+               stackratio=1.5, dotsize=1.2)+
+  stat_summary(fun=mean, geom="point", shape=18,size=3, color="red")
+
+p3<-ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_dotplot(binaxis='y', stackdir='center',
+               stackratio=1.5, dotsize=1.2)+
+  coord_flip()+
+  stat_summary(fun=mean, geom="point", shape=18,size=3, color="red")
+
+grid.arrange(p1, p2, p3,ncol = 3, heights=c(1,1))
+```
+```{r}
+ggplot(ToothGrowth, aes(x=factor(dose), y=len, fill=supp)) +
+  geom_dotplot(binaxis='y', stackdir='center')
+# use position=dodge
+```
+
+#Adding points to the violin plot
+
+```{r}
+ggplot(ToothGrowth, aes(x=factor(dose), y=len)) + 
+  geom_violin()+geom_dotplot(binaxis='y', stackdir='center', dotsize=1)
+```
+
+
+```{r}
+ggplot(ToothGrowth, aes(x=factor(dose), y=len, fill=supp)) + 
+  geom_violin()+
+  geom_dotplot(binaxis='y', stackdir='center', position="dodge")
+```
+
+# Untill here
+
+## Single Variable - Histogram
+```{r}
+ggplot(mpg, aes(x = cty)) +
+        geom_histogram()
+```
+
+```{r}
+ggplot(mpg, aes(x = cty)) +
+        geom_histogram(binwidth = 1, color = "grey30", fill = "white")
+```
+
+# Adding the mean line to the histogram
+```{r}
+ggplot(mpg, aes(x = cty)) +
+        geom_histogram(binwidth = 1, color = "grey30", fill = "white")+
+  geom_vline(xintercept = mean(mpg$cty), color = "red", linetype = "dashed", size=2)
+```
+# Lets add a third variable
+
+```{r}
+
+temp<-select(mpg, manufacturer, cty)
+temp<-filter(temp, manufacturer=="audi"|manufacturer=="dodge")
+ggplot(temp, aes(x = cty, fill=manufacturer))+
+  geom_histogram(alpha = .5) +
+  theme_update(text = element_text(size=16))
+```
+
+# show the mean value - good for undrestanding the distribution
+
+```{r}
+temp<-select(mpg, manufacturer, cty)
+temp<-filter(temp, manufacturer=="audi"|manufacturer=="dodge")
+compare_mean<-summarise(group_by(temp,manufacturer),Mean=mean(cty))
+
+ggplot(temp, aes(x = cty, fill=manufacturer))+
+  geom_histogram()+ 
+  geom_vline(xintercept = compare_mean$Mean,color = "red", linetype = "dashed", size=2)+
+  theme_update(text = element_text(size=16))
+ 
+```
+
+# Density plot - fill color
+```{r}
+ggplot(mpg, aes(x = cty)) +
+       geom_density(fill="steelblue")
+```
+
+# Density plot - add a third variable
+
+```{r}
+temp<-select(mpg, manufacturer, cty)
+temp<-filter(temp, manufacturer=="audi"|manufacturer=="dodge")
+
+ggplot(temp, aes(x = cty, fill=manufacturer))+
+  geom_density(alpha = .5) 
+```
+
+# Two dimension histogram
+
+
+```{r}
+ggplot(faithful, aes(x=eruptions, y=waiting)) +geom_bin2d()
+# Each bin corresponds to series of (x and y)
+
+```
+# Density 2d with different geoms 
+
+
+```{r}
+p<- ggplot(faithful, aes(x=eruptions, y=waiting)) +
+  geom_point()
+
+p1 <- p + stat_density2d()
+
+p3<- p +  stat_density2d(aes(color  = ..level..)) # We pass a Y variable which is generated using a formula as levels
+
+p3<- p +  stat_density2d(aes(fill = ..level..), geom="polygon")
+
+p4<- p +  stat_density2d(aes(fill = ..density..), geom = "raster", contour = FALSE) # We pass a Y variable which is generated using a density function
+
+# To draw contours, you need breaks, whereas tiles/rasters are continuous if passed ..density..
+#  
+p5<- p +  stat_density2d(aes(alpha = ..density..), geom = "tile", contour = FALSE)
+
+grid.arrange(p1, p2, p3, p4, p5, ncol = 2, nrow =3 )
+
+```
+
+## Simple Scatter Plots
+### Uses: Relationship between variables
+
+
+```{r}
+sample_data<-mpg
+ggplot(sample_data,aes(cty,hwy))+geom_point()
+```
+
+```{r}
+
+ggplot(sample_data,aes(cty,hwy,color=factor(cyl),shape=factor(drv),size=displ))+
+  geom_point()
+
+
+# do you think this is a good way of visualization? 
+```
+
+```{r}
+sample_data<-mpg
+cor(sample_data$cty,sample_data$hwy)
+cor(sample_data$hwy,sample_data$cty)
+
+fit1<-lm(hwy~cty,sample_data)
+fit2<-lm(cty~hwy,sample_data)
+summary(fit1)
+summary(fit2)
+```
+
+# draw patterns
+
+```{r}
+
+help("geom_smooth") 
+
+
+ggplot(mpg, aes(x=cty, y=hwy)) + 
+  geom_point()+ geom_smooth(method=lm, se=TRUE) # Aids the eye in seeing patterns in the presence of overplotting
+```
+
+
+
+```{r}
+ggplot(mpg, aes(x=cty, y=hwy)) + 
+  geom_point()+ geom_smooth()
+```
+ 
+# Draw relationship line per category (third variable) 
+ 
+```{r}
+ggplot(mpg, aes(x=cty, y=hwy, color=factor(cyl))) + 
+  geom_point()+
+  geom_smooth(method=lm, se=FALSE)
+```
+
+# Draw relationship line (full range) per category (third variable) 
+
+
+```{r}
+ggplot(mpg, aes(x=cty, y=hwy, color=factor(cyl))) + 
+  geom_point()+ 
+  geom_smooth(method=lm, se=FALSE,fullrange=TRUE)
+```
+
+# Correlation plot
+
+```{r}
+library(corrplot)
+M<-cor(mtcars)
+head(round(M,2))
+corrplot(M, method="circle")
+
+```
+
+
+```{r}
+corrplot(M, method="pie")
+```
+
+```{r}
+corrplot(M, method="color")
+```
+
+
+```{r}
+corrplot(M, method="number")
+```
+
+```{r}
+corrplot(M, type="upper")
+```
+
+# Ordering of the correlation matrix
+
+```{r}
+help("corrplot")
+corrplot(M, type="upper", order="hclust")
+corrplot(M, type="upper", order="alphabet")
+
+
+```
+
+
+## Scaling in Scatter Plot
+
+```{r}
+library(MASS)
+ggplot(Animals, aes(x = body, y = brain)) + geom_point()
+```
+
+# logarithmic scaling and updating logticks
+
+```{r}
+
+p1<-ggplot(Animals, aes(x = body, y = brain)) + 
+  geom_point() +
+     scale_x_log10() +
+     scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+              labels = trans_format("log10", math_format(10^.x))) 
+
+p2<-ggplot(Animals, aes(x = body, y = brain)) + geom_point() +
+     scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
+              labels = trans_format("log10", math_format(10^.x))) +
+     scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+              labels = trans_format("log10", math_format(10^.x))) +
+  annotation_logticks()  
+
+grid.arrange(p1, p2,ncol = 2)
+```
+
+
+# Time series
+# Line plots
+
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+
+y<- sample(1:10, 100, replace=T)
+x<-1:100
+df<-data.frame(x,y)
+ggplot(df, aes(x=x, y=y)) +
+  geom_line()+
+  ggtitle("x and y are continuous variables")
+```
+
+<!-- group="whatever" is a "dummy" grouping to override the default behavior, which (here) -->
+<!-- is to group by dose and in general is to group by the x variable. in order to separately count the number of  -->
+<!-- rows in each level of the x variable. For example, here, the default would be for -->
+<!-- geom_line to return the number of rows with cut equal to "D0.5, "D1", "D2". we using group = 1 -->
+
+
+```{r}
+df2 <- data.frame(supp=rep(c("VC", "OJ"), each=3),
+                dose=rep(c("0.5", "1", "2"),2),
+                len=c(6.8, 15, 33, 4.2, 10, 29.5))
+
+p1<-ggplot(subset(df2,df2$supp=="VC"), aes(x=dose, y=len, group=1)) +
+  geom_line(color="red")+
+  ggtitle("x is categorical and y is continuous")
+
+p2<-ggplot(subset(df2,df2$supp=="OJ"), aes(x=dose, y=len,group=1)) +
+  geom_line(color="orange")+
+  ggtitle("x is categorical and y is continuous")
+
+grid.arrange(p1, p2,ncol = 2)
+```
+
+# Grouping by a third variable
+
+```{r}
+ggplot(df2, aes(x=dose, y=len, group=supp, color=supp)) +
+  geom_line()+
+  ggtitle("x is categorical and y is continuous")
+```
+
+```{r}
+ggplot(df2, aes(x=dose, y=len, group=supp)) +
+  geom_line()+
+  geom_point()+
+  ggtitle("x is categorical and y is continuous")
+```
+
+#Converting x to continues  - shape changes as the distance
+
+```{r}
+ggplot(df2, aes(x=as.numeric(dose), y=len, group=supp, color=supp)) +
+  geom_line()+
+  geom_point()+
+  ggtitle("x is continuous and y is continuous")
+```
+
+
+```{r}
+ggplot(df2, aes(x=as.numeric(dose), y=len, group=supp, color=supp)) +
+  geom_line(size=2)+ 
+  geom_point(size=2)+
+  ggtitle("x is continuous and y is continuous")
+```
+
+```{r}
+ggplot(df2, aes(x=as.numeric(dose), y=len, group=supp, color=supp)) +
+  geom_line()+ 
+  geom_point(size=2)+
+  ggtitle("x is continuous and y is continuous")
+```
+
+```{r}
+ggplot(df2, aes(x=as.numeric(dose), y=len, group=supp, color=supp)) +
+  geom_line(linetype="dashed")+ 
+  geom_point(size=2)+
+  ggtitle("x is continuous and y is continuous")
+```
+
+```{r}
+ggplot(df2, aes(x=as.numeric(dose), y=len, group=supp, color=supp)) +
+  geom_line(aes(linetype=supp))+
+  geom_point(size=2)+
+  ggtitle("x is continuous and y is continuous")
+```
+
+```{r}
+ggplot(df2, aes(x=as.numeric(dose), y=len, group=supp, color=supp)) +
+  geom_line(aes(linetype=supp))+ 
+  geom_point(aes(shape=supp))+
+  ggtitle("x is continuous and y is continuous")
+```
+

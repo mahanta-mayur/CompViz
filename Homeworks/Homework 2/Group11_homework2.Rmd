@@ -1,0 +1,354 @@
+---
+title: "Untitled"
+author: "Moheth Muralidharan"
+date: "10/27/2022"
+output: pdf_document
+---
+
+#package installations
+install.packages("ggpubr", repos = "https://cloud.r-project.org/", dependencies = TRUE)
+
+##Libraries
+
+```{r}
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(ggpubr)
+library(gridExtra)
+```
+
+##Importing the Datasets
+
+```{r}
+ow <- read.csv('/Users/tataurosetta/Downloads/Courses and Assignments/Computer Vizualization (IE 6600)/Homeworks/Homework 2/Datasets/DataOverweight.csv',
+               na.strings="NA")
+uw <- read.csv('/Users/tataurosetta/Downloads/Courses and Assignments/Computer Vizualization (IE 6600)/Homeworks/Homework 2/Datasets/DataUnderweight.csv',
+              na.strings="NA")
+stunt <- read.csv('/Users/tataurosetta/Downloads/Courses and Assignments/Computer Vizualization (IE 6600)/Homeworks/Homework 2/Datasets/DataStunted.csv',
+                  na.strings="NA")
+wasted <- read.csv('/Users/tataurosetta/Downloads/Courses and Assignments/Computer Vizualization (IE 6600)/Homeworks/Homework 2/Datasets/DataWasted.csv',
+                   na.strings="NA")
+fm <- read.csv('/Users/tataurosetta/Downloads/Courses and Assignments/Computer Vizualization (IE 6600)/Homeworks/Homework 2/Datasets/fm.csv',na.strings="NA")
+dc_param <- read_excel("/Users/tataurosetta/Downloads/Courses and Assignments/Computer Vizualization (IE 6600)/Homeworks/Homework 2/Datasets/Data Country Parameters.xls",8)
+
+```
+
+## 1(a,b,c)
+
+Perform the following steps to get the required table:
+a) Join all 4 forms of malnutrition tables using joins on Country and Year in R
+b) For each country, take the mean value for all the forms of malnutrition
+c) Import the Data country parameters dataset and using joins, add WHO Region 
+and Income group from the sheet 8 of the dataset.
+
+#Code
+
+```{r}
+df1 <- ow %>% full_join (stunt,by=c("Country","Year"))
+df2 <- df1%>% full_join (uw,by=c("Country","Year"))
+hw_1 <- df2%>% full_join (wasted,by=c("Country","Year"))
+
+colnames(hw_1) <- c('Country','Year','OverWeight','Stunted','UnderWeight',
+                    'Wasted')
+
+hw_1$OverWeight <- as.numeric(hw_1$OverWeight)
+hw_1$Stunted <- as.numeric(hw_1$Stunted)
+hw_1$UnderWeight <- as.numeric (hw_1$UnderWeight)
+hw_1$Wasted <- as.numeric (hw_1$Wasted)
+
+mut_hw1 <- hw_1%>%
+  select (Country,OverWeight,Stunted,UnderWeight,Wasted)%>%
+  group_by (Country)%>%
+  mutate (AverageOverweightProportion=mean(OverWeight))%>%
+  mutate (AverageStuntedProportion=mean(Stunted))%>%
+  mutate (AverageUnderweightProportion=mean(UnderWeight))%>%
+  mutate (AverageWastedProportion=mean(Wasted))
+
+mut_hw1 <- as.data.frame (mut_hw1)
+
+mut_hw1 <- mut_hw1 %>% 
+  mutate_if (is.numeric, ~replace_na (.,mean (., na.rm = TRUE)))
+
+mut_hw1 <- mut_hw1%>%
+  select (Country,AverageOverweightProportion,AverageStuntedProportion,
+         AverageUnderweightProportion,AverageWastedProportion)
+
+mut_hw1 <- mut_hw1[!duplicated(mut_hw1), ]
+
+temp_hw1 <- mut_hw1
+rownames (temp_hw1) <- 1:nrow (temp_hw1)
+
+dcparam_new <- data.frame (dc_param$DisplayValue,dc_param$WHO_REGION,
+                         dc_param$`World Bank income group`)
+
+colnames(dcparam_new)[1] <- "Country"
+
+final_hw1 <- left_join (temp_hw1,dcparam_new, by='Country')
+colnames (final_hw1)[6:7] <- c("WHO_REGION","World Bank Income group")
+
+head (final_hw1,15)
+
+```
+
+#Conclusion
+
+We are using full_join (outer join) to join the values of Overweight, Stunted,
+Underweight, Wasted with respect to Country and Year. For each country, the
+mean of each values is calculated. The WHO Region and Income group are also 
+added.
+
+## 2
+
+Using the datasets provided, plot the graphs as shown below with titles and labels. (15 points)
+
+View(final_hw1)
+
+#Code
+```{r}
+
+hw_2 <- final_hw1
+
+#overweight
+hw_2_bar_ov <- hw_2 %>%
+  select(WHO_REGION,`World Bank Income group`, AverageOverweightProportion) %>%
+  group_by(WHO_REGION,`World Bank Income group`) %>%
+  summarise(Count = round(sum(AverageOverweightProportion)/n()), .groups = 'drop') %>%
+  arrange(desc(Count)) %>%
+  drop_na()
+
+gg_ov <-ggplot(hw_2_bar_ov, aes(fill=`World Bank Income group`, y=WHO_REGION, x=Count)) +
+    geom_bar(position="dodge", stat="identity")+
+  scale_fill_brewer(palette = 1)+
+  labs(fill = 'Income levels of country', x = 'Percentage(%)')+
+  geom_text(aes(label=Count), vjust=0.5,hjust=-0.5,position = position_dodge(width = 1))
+
+gg_ov
+
+
+#stunted
+hw_2_bar_st <- hw_2 %>%
+  select(WHO_REGION,`World Bank Income group`, AverageStuntedProportion) %>%
+  group_by(WHO_REGION,`World Bank Income group`) %>%
+  summarise(Count = round(sum(AverageStuntedProportion)/n()), .groups = 'drop') %>%
+  arrange(desc(Count)) %>%
+  drop_na()
+
+gg_st <-ggplot(hw_2_bar_st, aes(fill=`World Bank Income group`, y=WHO_REGION, x=Count)) +
+    geom_bar(position="dodge", stat="identity")+
+  scale_fill_brewer(palette = 1)+
+  labs(fill = 'Income levels of country', x = 'Percentage(%)')+
+  geom_text(aes(label=Count), vjust=0.5,hjust=-0.5,position = position_dodge(width = 1))
+
+gg_st
+
+
+#underweight
+hw_2_bar_ud <- hw_2 %>%
+  select(WHO_REGION,`World Bank Income group`, AverageUnderweightProportion) %>%
+  group_by(WHO_REGION,`World Bank Income group`) %>%
+  summarise(Count = round(sum(AverageUnderweightProportion)/n()), .groups = 'drop') %>%
+  arrange(desc(Count)) %>%
+  drop_na()
+
+gg_ud <-ggplot(hw_2_bar_ud, aes(fill=`World Bank Income group`, y=WHO_REGION, x=Count)) +
+    geom_bar(position="dodge", stat="identity")+
+  scale_fill_brewer(palette = 1)+
+  labs(fill = 'Income levels of country', x = 'Percentage(%)')+
+  geom_text(aes(label=Count), vjust=0.5,hjust=-0.5,position = position_dodge(width = 1))
+
+gg_ud
+
+
+#wasted
+hw_2_bar_wt <- hw_2 %>%
+  select(WHO_REGION,`World Bank Income group`, AverageWastedProportion) %>%
+  group_by(WHO_REGION,`World Bank Income group`) %>%
+  summarise(Count = round(sum(AverageWastedProportion)/n()), .groups = 'drop') %>%
+  arrange(desc(Count)) %>%
+  drop_na()
+
+gg_wt <-ggplot(hw_2_bar_wt, aes(fill=`World Bank Income group`, y=WHO_REGION, x=Count)) +
+    geom_bar(position="dodge", stat="identity")+
+  scale_fill_brewer(palette = 1)+
+  labs(fill = 'Income levels of country', x = 'Percentage(%)')+
+  geom_text(aes(label=Count), vjust=0.5,hjust=-0.5,position = position_dodge(width = 1))
+
+gg_wt
+
+
+
+```
+
+
+
+
+
+## 3
+
+Using the datasets, fill in the correlation values between different forms of malnutrition in the table. 
+
+#Code
+```{r}
+hw_3 <- hw_1
+hw_3 <- hw_3 %>% 
+  mutate_if (is.numeric, ~replace_na (.,mean (., na.rm = TRUE)))
+
+cor (hw_3[,c('OverWeight','Stunted','UnderWeight','Wasted')])
+
+```
+
+#Conclusion
+
+The correlation values are 1 when one variable is compared to the same variable.
+Negative correlation means that it is correlated in the opposite direction.
+If the correlation value is 0, it means that there is no correlation between 
+those two variables.
+
+## 4
+Using the datasets, plot the following Violin and Box plots. (20 points)
+
+#Box Plots
+```{r}
+
+hw_4 <- final_hw1
+
+#Overweight Category
+g_over <- ggplot(hw_4 , aes(x="",y=AverageOverweightProportion))+
+  geom_boxplot()
+
+g_over <- g_over + labs(x="  Overweight \n Category", 
+       y="Value")
+
+#Stunted Category
+g_stunted <- ggplot(hw_4 , aes(x="",y=AverageStuntedProportion))+
+  geom_boxplot()
+
+g_stunted <- g_stunted + labs(x="  Stunted \n Category", 
+       y="Value")
+
+#Underweight Category
+g_under <- ggplot(hw_4 , aes(x="",y=AverageUnderweightProportion))+
+  geom_boxplot()
+
+g_under <- g_under + labs(x="  Underweight \n Category", 
+       y="Value")
+
+#Wasted Category
+g_wasted <- ggplot(hw_4 , aes(x="",y=AverageWastedProportion))+
+  geom_boxplot()
+
+g_wasted <- g_wasted + labs(x="  Wasted \n Category", 
+       y="Value")
+
+grid.arrange(g_over,
+             g_stunted,
+             g_under,
+             g_wasted,
+             nrow = 2, ncol = 2, heights=c(4,4),top = "Box plot for values of different forms of malnutrition")
+
+```
+```{r}
+
+hw_4 <- final_hw1
+
+#Overweight Category
+g_over_v <- ggplot(hw_4 , aes(x="",y=AverageOverweightProportion))+
+  geom_violin()
+
+g_over_v <- g_over_v + labs(x="  Overweight \n Category", 
+       y="Value")
+
+#Stunted Category
+g_stunted_v <- ggplot(hw_4 , aes(x="",y=AverageStuntedProportion))+
+  geom_violin()
+
+g_stunted_v <- g_stunted_v + labs(x="  Stunted \n Category", 
+       y="Value")
+
+#Underweight Category
+g_under_v <- ggplot(hw_4 , aes(x="",y=AverageUnderweightProportion))+
+  geom_violin()
+
+g_under_v <- g_under_v + labs(x="  Underweight \n Category", 
+       y="Value")
+
+#Wasted Category
+g_wasted_v <- ggplot(hw_4 , aes(x="",y=AverageWastedProportion))+
+  geom_violin()
+
+g_wasted_v <- g_wasted_v + labs(x="  Wasted \n Category", 
+       y="Value")
+
+grid.arrange(g_over_v,
+             g_stunted_v,
+             g_under_v,
+             g_wasted_v,
+             nrow = 2, ncol = 2, heights=c(4,4),top = "Violin plot for values of different forms of malnutrition")
+
+
+```
+
+## 5
+
+Write a code to compute the number of farmers markets by state and arrange them
+in descending order of number of farmers market.
+
+#Code
+```{r}
+fm$FMID <- unique(fm$FMID)
+
+state_fm <- fm%>%
+  group_by(State)%>%
+  summarise(Number_of_farmer_markets=n())%>%
+  arrange(desc(Number_of_farmer_markets))
+state_fm
+```
+#Conclusion
+
+The number of farmer markets are arranged by state and in descending order.
+
+##6
+
+Write a code to compute the number of farmers market by cities in Massachusetts and 
+display top five cities. 
+
+#Code
+```{r}
+mass_fm <- fm%>%
+  filter (State == 'Massachusetts', na.rm=TRUE)%>%
+  group_by (city)%>%
+  count (city,sort = TRUE)%>%
+  drop_na()
+head (mass_fm,5)
+```
+
+#Conclusion
+
+The top five cities in the state of Massachusetts which have the highest number 
+of farmer markets are displayed.
+
+## 7
+
+Generate the following table using pivot function. First column should contain 
+the states.Second column should have Payment System. For Payment System consider
+the columns, “Credit”, “WIC”, “WICcash”, and “SNAP” from the original farmers
+market data. Third column should have the number of farmers market offering the payment services. 
+
+#Code
+```{r}
+temp_fm <- fm %>%
+  pivot_longer (cols=c('Credit','WIC','WICcash','SNAP'),
+               names_to="Payment System",values_to="PS_values")
+
+table_fm <- temp_fm%>%
+  filter (PS_values=="Y")%>%
+  group_by (State,`Payment System`)%>%
+  summarise (Farmer_Markets=n())
+table_fm
+```
+
+#Conclusion
+
+The table is generated using the pivot_longer() function with the requirements
+ accordingly.
